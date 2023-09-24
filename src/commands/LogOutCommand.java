@@ -6,42 +6,49 @@ import data.ResultData;
 
 import java.io.Serializable;
 
-public class ShowCommand implements ICommand, Serializable {
+public class LogOutCommand implements ICommand, Serializable {
     @Override
-    public ResultData execute(CommandData commandData){
-        return commandData.labCollection.show(commandData);
+    public ResultData execute(CommandData commandData) {
+        return commandData.client.logOut(null);
     }
 
     @Override
     public boolean isClientCommand() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean hasElement() {
         return false;
     }
+
+    @Override
+    public int hasToReadUser() {
+        return 0;
+    }
+
     @Override
     public boolean hasIntDigit() {
         return false;
     }
+
     @Override
     public boolean hasString() {
         return false;
     }
-    @Override
-    public String getName(){
-        return "show";
-    }
-    @Override
-    public String getDescription(){
-        return "show all elements in the collection";
-    }
-
 
     @Override
-    public boolean isIgnoreAuthorization(){
-        return true;
+    public boolean isIgnoreAuthorization() {
+        return false;
     }
 
+    @Override
+    public String getName() {
+        return "log_out";
+    }
+
+    @Override
+    public String getDescription() {
+        return "allow you to change current account";
+    }
 }

@@ -5,23 +5,26 @@ import abstractions.IServerCommandExecutor;
 import data.*;
 import exceptions.IdIsNotUniqueException;
 import exceptions.WrongInputException;
+import exceptions.users.NotRegisteredUserException;
+import exceptions.users.WrongPasswordException;
 import server.Attachment;
 
 import java.io.IOException;
-import java.nio.channels.SelectionKey;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.InvalidPathException;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 /**
  * LabCollection stores and manages LabWorks.
  */
 public class LabCollection implements IServerCommandExecutor {
+    private DataBaseHandler dataBaseHandler = new DataBaseHandler();
     private  LinkedList<LabWork> labsList = new LinkedList<>();
     private  String filePath;
     private LocalDateTime creationDate;
@@ -31,8 +34,10 @@ public class LabCollection implements IServerCommandExecutor {
         return creationDate;
     }
 
-    public LabCollection(){
+    public LabCollection(String rootName, String rootPasswd){
         this.creationDate = LocalDateTime.now();
+        dataBaseHandler.connectToDB(rootName, rootPasswd);
+        loadCollectionFromDB();
     }
 
     public LinkedList<LabWork> getCollection(){
@@ -43,7 +48,7 @@ public class LabCollection implements IServerCommandExecutor {
         this.filePath = filePath;
     }
 
-    public BlockingDeque<CommandData> toDoDeque = new LinkedBlockingDeque<>();
+    public BlockingQueue<CommandData> toDoQueue = new LinkedBlockingQueue<>();
 
 
 
@@ -68,8 +73,22 @@ public class LabCollection implements IServerCommandExecutor {
     }
     public ResultData clear(CommandData commandData){
         ResultData resultData = new ResultData();
-        labsList = new LinkedList<>();
-        resultData.resultText = "Collection is cleared";
+
+        try {
+            dataBaseHandler.clearUserElements(commandData);
+            if (commandData.user.isAdmin()){
+                dataBaseHandler.truncate(commandData);
+            }
+        }
+        catch (SQLException e){
+            resultData.errorMessage = e.getMessage();
+            return resultData;
+        }
+
+        List<LabWork> deleteList = labsList.stream().filter((el) -> (permissionCollectionCheck(commandData.user, el))).toList();
+        labsList.removeAll(deleteList);
+        resultData.resultText = "Remove " + deleteList.size() + " elements";
+
         return resultData;
     }
     public ResultData info(CommandData commandData){
@@ -79,12 +98,20 @@ public class LabCollection implements IServerCommandExecutor {
     }
 
     public ResultData add(CommandData commandData){
+        ResultData resultData = new ResultData();
+        try{
+            dataBaseHandler.addLabWork(commandData);
+        }
+        catch (SQLException e){
+            resultData.errorMessage = e.getMessage();
+            return resultData;
+        }
         LabWork labWork = commandData.element;
-        labWork.setId(collectionIDPointer);
+        labWork.setId(getCurrentID());
         collectionIDPointer++;
         labsList.add(labWork);
 
-        ResultData resultData = new ResultData();
+
         resultData.labsList.add(labWork);
         resultData.resultText = "Element was successfully added";
         return resultData;
@@ -121,39 +148,61 @@ public class LabCollection implements IServerCommandExecutor {
     }
     public ResultData removeById(CommandData commandData){
         ResultData resultData = new ResultData();
-        Integer id = commandData.intDigit;
-        boolean haveSuchElement = labsList.stream().anyMatch((el) -> el.getId().equals(id));
-        List<LabWork> deleteList = labsList.stream().filter((el) -> el.getId().equals(id)).toList();
+        int id = commandData.intDigit;
+
+        int rawDelete = 0;
+        try{
+            if (permissionDBCheck(commandData.user, commandData.intDigit))
+                rawDelete =  dataBaseHandler.removeByID(commandData);
+        }
+        catch (SQLException e){
+            e.printStackTrace();
+        }
+
+        List<LabWork> deleteList = labsList.stream().filter((el) -> el.getId().equals(id)).filter((el) -> (permissionCollectionCheck(commandData.user, el))).toList();
         labsList.removeAll(deleteList);
-        if (haveSuchElement){
-            resultData.resultText = "Element was deleted";
-        }
-        else{
-            resultData.resultText = "There is no element with such id";
-        }
+        resultData.resultText = "Delete " + rawDelete + " elements of user " + commandData.user.getName();
         return resultData;
     }
     public ResultData updateById(CommandData commandData){
         ResultData resultData = new ResultData();
         Integer id = commandData.intDigit;
-        boolean haveSuchElement = labsList.stream().anyMatch((el) -> el.getId().equals(id));
-        labsList.stream().filter((el) -> el.getId().equals(id)).forEach((el) -> el.updateInfoFromElement(commandData.element));
 
-        if (haveSuchElement){
-            resultData.resultText = "Element was updated";
+        int rawUpdate = 0;
+        try{
+            if (permissionDBCheck(commandData.user, commandData.intDigit))
+                rawUpdate =  dataBaseHandler.updateByID(commandData);
         }
-        else{
-            resultData.resultText = "There is no element with such id";
+        catch (SQLException e){
+            e.printStackTrace();
         }
+
+        //boolean haveSuchElement = labsList.stream().anyMatch((el) -> el.getId().equals(id));
+        labsList.stream().filter((el) -> el.getId().equals(id)).filter((el) -> (permissionCollectionCheck(commandData.user, el))).forEach((el) -> el.updateInfoFromElement(commandData.element));
+
+        resultData.resultText = "Update " + rawUpdate + " elements";
+
         return resultData;
     }
     public ResultData removeGreater(CommandData commandData){
         ResultData resultData = new ResultData();
         Comparator<LabWork> pointsComparator = new PointsPerDifficultyComparator();
-        long i = labsList.stream().filter((el) -> pointsComparator.compare(el, commandData.element) > 0).count();
-        List<LabWork> deleteList = labsList.stream().filter((el) -> pointsComparator.compare(el, commandData.element) > 0).toList();
+        long i = labsList.stream().filter((el) -> pointsComparator.compare(el, commandData.element) > 0).filter((el) -> (permissionCollectionCheck(commandData.user, el))).count();
+
+        List<LabWork> deleteList = labsList.stream().filter((el) -> pointsComparator.compare(el, commandData.element) > 0).filter((el) -> (permissionCollectionCheck(commandData.user, el))).toList();
+        for (LabWork lab : deleteList){
+            commandData.element = lab;
+            commandData.intDigit = lab.getId();
+            try {
+                dataBaseHandler.removeByID(commandData);
+            }
+            catch (SQLException e){
+                e.printStackTrace();
+            }
+        }
+
         labsList.removeAll(deleteList);
-        resultData.resultText = "Removed " + i + " elements";
+        resultData.resultText = "Remove " + i + " elements";
         return resultData;
     }
     public ResultData minById (CommandData commandData){
@@ -260,4 +309,92 @@ public class LabCollection implements IServerCommandExecutor {
     }
 
 
+    public ResultData singUpNewUser(CommandData commandData) {
+        ResultData resultData = new ResultData();
+        try{
+            dataBaseHandler.registerNewUser(commandData);
+            resultData.user = commandData.user;
+            resultData.resultText = "Register a new user " + commandData.user.getName();
+        }
+        catch (SQLException e){
+            resultData.errorMessage = e.getMessage();
+            return resultData;
+        }
+        catch (Exception  e){
+            e.printStackTrace();
+            throw new RuntimeException();
+        }
+        return resultData;
+    }
+    public ResultData logInUser(CommandData commandData){
+        ResultData resultData = new ResultData();
+        try{
+            User setUser = dataBaseHandler.logInUser(commandData);
+            resultData.user = setUser;
+            resultData.resultText = "Welcome, " + commandData.user.getName();
+        }
+        catch (SQLException e){
+            resultData.errorMessage = e.getMessage();
+            return resultData;
+        }
+        catch (WrongPasswordException e){
+            resultData.errorMessage = "Passwords is wrong!";
+            return resultData;
+        }
+        catch (NotRegisteredUserException e){
+            resultData.errorMessage = "User with this name was not registered!";
+            return resultData;
+        }
+        catch (Exception  e){
+            e.printStackTrace();
+            throw new RuntimeException();
+        }
+        return resultData;
+    }
+    private void loadCollectionFromDB(){
+        try{
+            labsList = dataBaseHandler.loadCollection();
+            System.out.println("Load collection from DB!");
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private int getCurrentID(){
+        int curID = -1;
+        try{
+            curID = dataBaseHandler.getCurrentID();
+        }
+        catch (SQLException e){
+            e.printStackTrace();
+        }
+        finally {
+            return curID;
+        }
+    }
+    private boolean permissionDBCheck(User user, int labID){
+        boolean permitted = false;
+        if (user.isAdmin()){
+            System.out.println("Allow all operations with DB. User is admin!");
+            return true;
+        }
+        try{
+            permitted = dataBaseHandler.permissionCheck(user, labID);
+        }
+        catch (SQLException e){
+            e.printStackTrace();
+        }
+        return permitted;
+    }
+
+    private boolean permissionCollectionCheck(User user, LabWork labWork){
+        boolean permitted = false;
+        if (user.isAdmin()){
+            System.out.println("Allow all operations with Collection. User is admin!");
+            return true;
+        }
+        permitted = labWork.getUser().getName().equals(user.getName());
+        return permitted;
+    }
 }

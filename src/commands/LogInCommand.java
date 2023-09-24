@@ -9,7 +9,7 @@ import java.io.Serializable;
 public class LogInCommand implements ICommand, Serializable {
     @Override
     public ResultData execute(CommandData commandData) {
-        return null;
+        return commandData.labCollection.logInUser(commandData);
     }
 
     @Override
@@ -23,8 +23,8 @@ public class LogInCommand implements ICommand, Serializable {
     }
 
     @Override
-    public boolean hasToReadUser() {
-        return true;
+    public int hasToReadUser() {
+        return 1;
     }
 
     @Override

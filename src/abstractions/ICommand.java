@@ -8,8 +8,8 @@ public interface ICommand{
     ResultData execute(CommandData commandData);
     boolean isClientCommand();
     boolean hasElement();
-    default boolean hasToReadUser(){
-        return false;
+    default int hasToReadUser(){
+        return 0;
     }
     boolean hasIntDigit();
     boolean hasString();

@@ -17,20 +17,18 @@ public class WebSendThread extends Thread{
     public void run() {
         while (true){
             try {
-                System.out.println("Try to send something");
-                CommandData commandData = webDispatcher.sendingDeque.take();
-                System.out.println("Get new command data to send");
+                CommandData commandData = webDispatcher.sendingQueue.take();
                 webDispatcher.sendCommandToServer(commandData);
             }
             catch (SocketException e){
-                System.out.println("Server is unavailable. Repeat your command after reconnection");
+                client.getWarningComponent().serverIsUnavailable();
                 webDispatcher.isConnected = false;
                 webDispatcher.connect("127.0.0.1", 8888, client);
                 this.run();
             }
             catch (IOException e){
                 e.printStackTrace();
-                System.out.println("Server is unavailable. Repeat your command after reconnection");
+                client.getWarningComponent().serverIsUnavailable();
                 webDispatcher.isConnected = false;
                 webDispatcher.connect("127.0.0.1", 8888, client);
                 this.run();

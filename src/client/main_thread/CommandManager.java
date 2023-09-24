@@ -37,7 +37,10 @@ public class CommandManager {
         CommandManager.register(new MinByIdCommand());
         CommandManager.register(new CountByMinimalPointCommand());
         CommandManager.register(new FilterContainsNameCommand());
+        CommandManager.register(new SingUpCommand());
         CommandManager.register(new LogInCommand());
+        CommandManager.register(new LogOutCommand());
+
     }
     public static ICommand getCommand(String commandName) throws WrongInputException{
         ICommand command = commandMap.get(commandName);

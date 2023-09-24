@@ -9,6 +9,7 @@ import client.result_thread.Warning;
 import client.web_thread.WebDispatcher;
 import data.CommandData;
 import data.ResultData;
+import data.User;
 
 
 public interface IClientCommandExecutor extends ICommandExecutor{
@@ -24,8 +25,12 @@ public interface IClientCommandExecutor extends ICommandExecutor{
     Warning getWarningComponent();
     ScriptReader getScriptReader();
     WebDispatcher getWebDispatcher();
+    void setUser(User user);
 
+    ResultData logOut(CommandData commandData);
     ResultData help(CommandData commandData);
     ResultData exit(CommandData commandData);
     ResultData executeScript(CommandData commandData);
+
+    User getCurrentUser();
 }

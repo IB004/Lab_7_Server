@@ -41,6 +41,10 @@ public class Warning {
             mustBeHigher(wrongInputException.getInfo());
             return;
         }
+        if (e instanceof NestingLevelException){
+            warningMessage("Too much nesting in reading scripts!");
+            return;
+        }
         warningMessage("Something went wrong. Please, try again.");
         e.printStackTrace();
     }
@@ -89,5 +93,14 @@ public class Warning {
     public void notAuthorizedWarning(){
         warningMessage("Authorize first to use this command!");
     }
+
+    public void passwordsDoNotMatch(){
+        warningMessage("You entered different passwords! Can't sing up a new user.");
+    }
+
+    public void serverIsUnavailable(){
+        warningMessage("Server is unavailable. Repeat your command after reconnection");
+    }
+
 
 }

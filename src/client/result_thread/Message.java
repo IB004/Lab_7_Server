@@ -34,6 +34,7 @@ public class Message {
                             (command.hasIntDigit() ? "<int> " : "" ) +
                             (command.hasString() ? "<str> " : "" ) +
                             (command.hasElement() ? "<element> " : "" ) +
+                            (command.hasToReadUser()>0 ? "<user> " : "" ) +
                             "- " + command.getDescription());
     }
 

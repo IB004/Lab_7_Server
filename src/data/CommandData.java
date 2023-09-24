@@ -30,7 +30,6 @@ public class CommandData implements Serializable {
         return this.command == null;
     }
 
-
     @Override
     public String toString(){
         String str = "intDigit: " + (intDigit == null ? "-" : intDigit) + "\n"

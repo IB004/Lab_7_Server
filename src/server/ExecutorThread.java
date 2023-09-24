@@ -12,7 +12,7 @@ public class ExecutorThread extends Thread{
     public void run() {
         try {
             while (true) {
-                labCollection.execute(labCollection.toDoDeque.take());
+                labCollection.execute(labCollection.toDoQueue.take());
             }
         }
         catch (InterruptedException e){

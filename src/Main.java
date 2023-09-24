@@ -6,12 +6,9 @@ import server.Server;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        LabCollection labCollection = new LabCollection();
-        if(args.length > 0){
-            labCollection.setFilePath(args[0]);
-        }
+        LabCollection labCollection = new LabCollection("root", "1");
         Server server = new Server(labCollection);
-        //new InnerClientThread().start();
+        new InnerClientThread().start();
         new ExecutorThread(labCollection).start();
         server.doWhileTrue();
     }

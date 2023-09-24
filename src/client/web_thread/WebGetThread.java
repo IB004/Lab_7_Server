@@ -26,19 +26,19 @@ public class WebGetThread extends Thread{
                 while(webDispatcher.isConnected){
                     ResultData resultData = webDispatcher.getResultDataFromServer();
                     if (resultData != null)
-                        resultHandler.resultDeque.put(resultData);
+                        resultHandler.resultQueue.put(resultData);
                 }
             }
         }
         catch (SocketException e){
-            System.out.println("Server is unavailable. Repeat your command after reconnection");
+            client.getWarningComponent().serverIsUnavailable();
             webDispatcher.isConnected = false;
             webDispatcher.connect("127.0.0.1", 8888, client);
             this.run();
         }
         catch (IOException e){
             e.printStackTrace();
-            System.out.println("Server is unavailable. Repeat your command after reconnection");
+            client.getWarningComponent().serverIsUnavailable();
             webDispatcher.isConnected = false;
             webDispatcher.connect("127.0.0.1", 8888, client);
             this.run();

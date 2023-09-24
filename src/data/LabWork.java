@@ -15,7 +15,6 @@ import java.util.Locale;
 public class LabWork implements Comparable<LabWork>, Serializable{
 
     private static final long serialVersionUID = 1L;
-    static Integer collectionIDPointer = 0;
     public LabWork(){
         this.creationDate = LocalDateTime.now();
     }
@@ -31,10 +30,10 @@ public class LabWork implements Comparable<LabWork>, Serializable{
     private Coordinates coordinates = new Coordinates(); //Поле не может быть null
     private Discipline discipline = new Discipline(); //Поле может быть null
     private Difficulty difficulty; //Поле не может быть null
+    private User user;
 
     public void setId(Integer id){
         this.id = id;
-        collectionIDPointer++;
     }
     public void setName(String str) throws WrongInputException{
         if (str == null || str.isBlank()){
@@ -151,6 +150,9 @@ public class LabWork implements Comparable<LabWork>, Serializable{
         LocalDateTime localDateTime = LocalDateTime.parse(str);
         this.creationDate = localDateTime;
     }
+    public void setUser(User user){
+        this.user = user;
+    }
 
 
     public void updateInfoFromElement(LabWork labWork){
@@ -173,9 +175,42 @@ public class LabWork implements Comparable<LabWork>, Serializable{
         return minimalPoint;
     }
 
+    public double getMaximumPoint() {
+        return maximumPoint;
+    }
+
+    public float getPersonalQualitiesMaximum() {
+        return personalQualitiesMaximum;
+    }
+
+    public long getXCoord(){
+        return coordinates.getX();
+    }
+
+    public Long getYCoord(){
+        return coordinates.getY();
+    }
+    public String getDisciplineName() {
+        return discipline.getName();
+    }
+    public long getDisciplineLectureHours() {
+        return discipline.getLectureHours();
+    }
+    public long getDisciplineLabsCount() {
+        return discipline.getLabsCount();
+    }
+
+    public String getDifficulty() {
+        return difficulty.name();
+    }
+
     public int countPointsPerDifficulty(){
         double pointsPerDifficulty = maximumPoint*discipline.getLabsCount()/(difficulty.ordinal()+1);
         return  Double.valueOf(pointsPerDifficulty).intValue();
+    }
+
+    public User getUser() {
+        return user;
     }
 
     public String[] toStringArray(){
@@ -216,7 +251,6 @@ class Coordinates implements Serializable{
     public Long getX() {
         return x;
     }
-
     public Long getY() {
         return y;
     }

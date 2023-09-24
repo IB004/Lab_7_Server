@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -31,12 +32,12 @@ public class Server {
         this.warningComponent = new Warning();
         this.labCollection = labCollection;
         startChannelsActions();
-        loadCollectionFromFile();
+        //loadCollectionFromFile();
     }
     final LabCollection labCollection;
     final Warning warningComponent;
 
-    private final ForkJoinPool forkJoinPool = new ForkJoinPool();
+    private final ForkJoinPool forkJoinPool = new ForkJoinPool(2);
 
 
     private int PORT = 8888;
@@ -66,9 +67,11 @@ public class Server {
             System.out.println("Wait for connection...");
             return;
         }
+
         ArrayList<SelectionKey> keysList =  new ArrayList<>(selector.selectedKeys().stream().toList());
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
+
         forkJoinPool.invoke(new ServeConnections(keysList, this));
+
         Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
         while(iterator.hasNext()){
             iterator.next();

@@ -9,15 +9,16 @@ import client.result_thread.Warning;
 import client.web_thread.WebDispatcher;
 import client.web_thread.WebGetThread;
 import client.web_thread.WebSendThread;
+import commands.SingUpCommand;
 import data.CommandData;
 import data.ResultData;
 import data.User;
 import exceptions.WrongInputException;
 import exceptions.users.NotAuthorizedException;
+import exceptions.users.PasswordsDoNotMatchException;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * Client read input values, form commandData and send it to the executor.
@@ -35,7 +36,7 @@ public class Client implements IClientCommandExecutor {
         webDispatcher = new WebDispatcher(messageComponent, warningComponent);
         new WebGetThread(webDispatcher, resultHandler, this).start();
         new WebSendThread(webDispatcher, this).start();
-        new ResultShowerThread(resultHandler).start();
+        new ResultShowerThread(this).start();
     }
     private boolean scriptReading = false;
     private int nestingLevel = 0;
@@ -47,13 +48,12 @@ public class Client implements IClientCommandExecutor {
     private final ScriptExecutor scriptExecutor;
     private final WebDispatcher webDispatcher;
 
-    public User currentUser;
+    private volatile User currentUser;
 
     public volatile boolean ableToRead;
     public boolean isReadingScript(){
         return scriptReading;
     }
-
     public boolean userHadLoggedIn(){
         return currentUser != null;
     }
@@ -83,86 +83,62 @@ public class Client implements IClientCommandExecutor {
         return webDispatcher;
     }
 
+    //resultShowerThread
+    public void setUser(User user){
+        currentUser = user;
+    }
+
+    public User getCurrentUser(){
+        return currentUser;
+    }
+
 
     public void doWhileTrue(){
         try {
             webDispatcher.connect("127.0.0.1", 8888, this);
             while (true) {
                 while(ableToRead){
+
                     CommandData commandData = commandDataFormer.getNewCommandData();
                     commandData.client = this;
+                    commandData.user = currentUser;
                     String[] words = inputHandler.readLine();
                     commandDataFormer.fillCommandData(words, commandData);
                     if (!commandData.isEmpty()) {
                         commandDataFormer.validateCommand(commandData);
                         webDispatcher.sendCommandDataToExecutor(commandData);
                     }
+                    //showCurrentThreads();
                 }
             }
         }
+        catch (NoSuchElementException e){
+            exit(null);
+        }
         catch (WrongInputException e){
             warningComponent.showExceptionWarning(e);
-            this.doWhileTrue();
+        }
+        catch (PasswordsDoNotMatchException e){
+            warningComponent.passwordsDoNotMatch();
         }
         catch (NotAuthorizedException e){
             warningComponent.notAuthorizedWarning();
-            this.doWhileTrue();
         }
         catch (Exception e){
             e.printStackTrace();
+        }
+        finally {
             this.doWhileTrue();
         }
     }
 
-
-    /*
-    public void doWhileTrue(){
-        try {
-            webDispatcher.connect("127.0.0.1", 8888);
-            while (true) {
-                showServerRespond();
-                CommandData commandData = commandDataFormer.getNewCommandData();
-                commandData.client = this;
-                String[] words = inputHandler.readLine();
-                commandDataFormer.fillCommandData(words, commandData);
-                if (!commandData.isEmpty()) {
-                    commandDataFormer.validateCommand(commandData);
-                    webDispatcher.sendCommandDataToExecutor(commandData);
-                }
-            }
-        }
-        catch (WrongInputException e){
-            warningComponent.showExceptionWarning(e);
-            this.doWhileTrue();
-        }
-        catch (IOException e){
-            warningComponent.showWarning(e);
-            warningComponent.warningMessage("Server is unavailable. Repeat your command after reconnection");
-            webDispatcher.isConnected = false;
-            this.doWhileTrue();
-        }
-        catch (Exception e){
-            e.printStackTrace();
-            this.doWhileTrue();
-        }
-    }
-     */
-
-    /*
-    public void showServerRespond() throws IOException, ClassNotFoundException, InterruptedException {
-        Thread.sleep(500);
-        ResultData resultData = webDispatcher.getResultDataFromServer();
-        resultHandler.addResult(resultData);
-        resultHandler.showResults();
-    }
-     */
 
     // in sender thread
     public ResultData execute(CommandData commandData){
         ResultData resultData = commandData.command.execute(commandData);
         try {
             if (resultData != null)
-                resultHandler.resultDeque.put(resultData);
+                resultHandler.resultQueue.put(resultData);
         }
         catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -196,10 +172,30 @@ public class Client implements IClientCommandExecutor {
             nestingLevel = 0;
         }
         catch (Exception e){
+            warningComponent.warningMessage("Catch some exception while script reading!");
             warningComponent.showExceptionWarning(e);
         }
         ResultData resultData = new ResultData();
-        resultData.resultText = "Script was successfully finished";
+        resultData.resultText = "Script reading was finished";
         return resultData;
+    }
+    public ResultData logOut(CommandData commandData){
+        ResultData resultData = new ResultData();
+        resultData.resultText = "Log out!";
+        currentUser = null;
+        return resultData;
+    }
+
+    private void showCurrentThreads(){
+        System.out.println();
+        System.out.println("-------------------------------");
+        System.out.println("THREADS: ");
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+        Iterator<Thread> iterator = threadSet.iterator();
+        while (iterator.hasNext()){
+            System.out.println(iterator.next().getName());
+        }
+        System.out.println("-------------------------------");
+        System.out.println();
     }
 }

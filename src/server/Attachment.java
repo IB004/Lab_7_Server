@@ -8,7 +8,7 @@ import java.util.Arrays;
 
 public class Attachment {
 
-    public ByteBuffer readingBuffer = ByteBuffer.allocate(1024);
+    public ByteBuffer readingBuffer = ByteBuffer.allocate(8192);
     public int objectLength = 0;
     public int writeBytes = 0;
     public ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();

@@ -1,6 +1,8 @@
 package client.main_thread;
 
 import data.LabWork;
+import data.User;
+import exceptions.EmptyFieldException;
 import exceptions.WrongInputException;
 
 import java.util.Scanner;
@@ -49,4 +51,10 @@ public class ScriptReader {
     }
 
 
+    public User readUserFromScript(Scanner scriptScanner) throws EmptyFieldException {
+        User user = new User();
+        user.setName(readWord(scriptScanner));
+        user.setPassword(readWord(scriptScanner));
+        return user;
+    }
 }

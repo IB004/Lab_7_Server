@@ -6,9 +6,6 @@ import data.User;
 import exceptions.WrongInputException;
 import exceptions.users.PasswordsDoNotMatchException;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Scanner;
 
 /**
@@ -39,41 +36,49 @@ public class InputElementReader {
 
     public User readUser(){
         User user = new User();
-        user.setName(readWord("Type user name"));
+        readUserName(user);
         user.setPassword(readPassword("Type the password"));
         return user;
     }
 
     public User readNewUser() throws PasswordsDoNotMatchException {
         User user = new User();
-        user.setName(readWord("Type user name"));
+        readUserName(user);
         String password =  readPassword("Type the password");
         String repeatedPassword = readPassword("Repeat password");
+        if (password == null && repeatedPassword == null){
+            user.setPassword(null);
+            return user;
+        }
         if (!password.equals(repeatedPassword)){
             throw new PasswordsDoNotMatchException();
         }
+        user.setPassword(password);
         return user;
     }
     private String readPassword(String helpMessage){
         if(!isNullOrEmpty(helpMessage)){
             System.out.print(helpMessage + ": ");
         }
-
-        HidingPasswordThread thread = new HidingPasswordThread();
-        thread.start();
-
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        String password = "";
-
-        try {
-            password = in.readLine();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
+        String str = scanner.nextLine();
+        String[] words = str.split("\\s+");
+        for(String word: words){
+            if (isNullOrEmpty(word)){
+                continue;
+            }
+            return word;
         }
-        // stop masking
-        thread.stopMasking();
-        // return the password entered by the user
-        return password;
+        return null;
+    }
+
+    private void readUserName(User user){
+        try {
+            user.setName(readWord("Type user name"));
+        }
+        catch (WrongInputException e){
+            warningComponent.showExceptionWarning(e);
+            readUserName(user);
+        }
     }
     private void readName(LabWork labWork){
         try {

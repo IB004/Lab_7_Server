@@ -19,4 +19,7 @@ public interface IServerCommandExecutor extends ICommandExecutor {
     ResultData shuffle (CommandData commandData);
     ResultData updateById (CommandData commandData);
 
+    ResultData logInUser(CommandData commandData);
+
+    ResultData singUpNewUser(CommandData commandData);
 }

@@ -6,10 +6,10 @@ import data.ResultData;
 
 import java.io.Serializable;
 
-public class ShowCommand implements ICommand, Serializable {
+public class SingUpCommand implements ICommand, Serializable {
     @Override
-    public ResultData execute(CommandData commandData){
-        return commandData.labCollection.show(commandData);
+    public ResultData execute(CommandData commandData) {
+        return commandData.labCollection.singUpNewUser(commandData);
     }
 
     @Override
@@ -21,27 +21,34 @@ public class ShowCommand implements ICommand, Serializable {
     public boolean hasElement() {
         return false;
     }
+
+    @Override
+    public int hasToReadUser() {
+        return 2;
+    }
+
     @Override
     public boolean hasIntDigit() {
         return false;
     }
+
     @Override
     public boolean hasString() {
         return false;
     }
-    @Override
-    public String getName(){
-        return "show";
-    }
-    @Override
-    public String getDescription(){
-        return "show all elements in the collection";
-    }
-
 
     @Override
-    public boolean isIgnoreAuthorization(){
+    public boolean isIgnoreAuthorization() {
         return true;
     }
 
+    @Override
+    public String getName() {
+        return "sing_up";
+    }
+
+    @Override
+    public String getDescription() {
+        return "sing up a new user";
+    }
 }

@@ -20,6 +20,7 @@ public class ResultData implements Serializable {
         return !(this.labsList == null || this.labsList.isEmpty());
     }
 
+    public User user;
     public static boolean isEmpty(ResultData resultData){
         if (resultData == null){
             return true;

@@ -7,9 +7,9 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.RecursiveAction;
 
-public class ServeConnections extends RecursiveTask<ArrayList<SelectionKey>> {
+public class ServeConnections extends RecursiveAction {
 
     public ServeConnections(ArrayList<SelectionKey> selectionKeys, Server server){
         this.selectionKeys = selectionKeys;
@@ -20,10 +20,11 @@ public class ServeConnections extends RecursiveTask<ArrayList<SelectionKey>> {
     private final Server server;
     private final int ABLE_TO_SERVE_WITH_ONE_THREAD = 3;
     @Override
-    protected ArrayList<SelectionKey> compute() {
+    protected void compute() {
         int size = selectionKeys.size();
         if (size <= ABLE_TO_SERVE_WITH_ONE_THREAD){
             try {
+                //System.out.printf("Task %s execute in thread %s%n", this, Thread.currentThread().getName());
                 serveConnections(selectionKeys);
             }
             catch (Exception e){
@@ -39,10 +40,9 @@ public class ServeConnections extends RecursiveTask<ArrayList<SelectionKey>> {
             ServeConnections second = new ServeConnections(list2, server);
             invokeAll(first, second);
         }
-        return selectionKeys;
     }
 
-    private void serveConnections(ArrayList<SelectionKey> selectionKeys) throws Exception{
+    private void serveConnections(ArrayList<SelectionKey> selectionKeys){
         Iterator<SelectionKey> iterator = selectionKeys.iterator();
         while (iterator.hasNext()) {
             SelectionKey key = iterator.next();
@@ -63,7 +63,7 @@ public class ServeConnections extends RecursiveTask<ArrayList<SelectionKey>> {
                         server.logger.info("Read command: " + commandData.command.getName());
                         System.out.println("Read command: " + commandData.command.getName());
                         commandData.selectionKey = key;
-                        server.labCollection.toDoDeque.put(commandData);
+                        server.labCollection.toDoQueue.put(commandData);
                     }
                 }
                 if (key.isWritable()){
@@ -72,7 +72,7 @@ public class ServeConnections extends RecursiveTask<ArrayList<SelectionKey>> {
                 iterator.remove();
             }
             catch (IOException e){
-                e.printStackTrace();
+                //e.printStackTrace();
                 server.warningComponent.warningMessage("IOException. Connection reset");
                 key.cancel();
             }
